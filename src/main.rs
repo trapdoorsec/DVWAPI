@@ -46,7 +46,7 @@ async fn main() {
         .with(
             tracing_subscriber::fmt::layer()
                 .with_ansi(cli.colored)
-                .with_target(false)
+                .with_target(false),
         )
         .init();
 
@@ -76,7 +76,11 @@ async fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::{body::Body, http::{Request, StatusCode}, Router};
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+        Router,
+    };
     use http_body_util::BodyExt;
     use serde_json::{json, Value};
     use tower::ServiceExt;
@@ -250,12 +254,7 @@ mod tests {
         let app = create_test_app();
 
         let response = app
-            .oneshot(
-                Request::builder()
-                    .uri("/.env")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri("/.env").body(Body::empty()).unwrap())
             .await
             .unwrap();
 
