@@ -63,9 +63,22 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/{version}/version-info", get(vulnerable::version_info))
         .route("/api/{version}/check", get(vulnerable::api_version_check));
 
+    // VULNERABILITY: Git Repository Exposure (UNDOCUMENTED)
+    // Simulates accidentally deploying .git folder to production
+    // Common attack: attackers scan for /.git/config to find repository URLs,
+    // credentials, and commit history
+    let git_router = Router::new()
+        .route("/.git", get(vulnerable::git_directory))
+        .route("/.git/", get(vulnerable::git_directory))
+        .route("/.git/config", get(vulnerable::git_config))
+        .route("/.git/HEAD", get(vulnerable::git_head))
+        .route("/.git/logs/HEAD", get(vulnerable::git_logs_head))
+        .route("/.git/index", get(vulnerable::git_index));
+
     Router::new()
         .merge(root_router)
         .merge(vulnerable_router)
+        .merge(git_router)
         .nest("/api/v1", create_v1_routes(state.clone()))
         .nest("/api/v2", create_v2_routes(state.clone()))
         .nest("/api/v3", create_v3_routes(state))
