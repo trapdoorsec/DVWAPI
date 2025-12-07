@@ -143,7 +143,8 @@ The API has intentionally vulnerable endpoints that allow command injection thro
 
 The API exposes Swagger/OpenAPI documentation endpoints with RCE vulnerabilities through unsafe spec generation:
 
-- `GET /swagger` - Main Swagger UI endpoint
+- `GET /swagger` - Swagger UI documentation viewer
+- `GET /redoc` - ReDoc documentation viewer
 - `GET /swagger.json` - Swagger JSON spec
 - `GET /api-docs` - API documentation
 - `GET /swagger/generate?title={value}` - Generate custom spec (vulnerable to command injection)

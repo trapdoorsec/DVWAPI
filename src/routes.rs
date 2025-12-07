@@ -84,6 +84,7 @@ pub fn create_router(state: AppState) -> Router {
     //   /swagger/upload/test;id;           - executes id command
     let swagger_router = Router::new()
         .route("/swagger", get(vulnerable::swagger_ui_html))
+        .route("/redoc", get(vulnerable::redoc_html))
         .route("/swagger/openapi.json", get(vulnerable::swagger_openapi_spec))
         .route("/swagger.json", get(vulnerable::swagger_openapi_spec))
         .route("/api-docs", get(vulnerable::swagger_openapi_spec))

@@ -186,6 +186,29 @@ pub async fn swagger_ui_html() -> Html<String> {
     Html(html.to_string())
 }
 
+/// ReDoc HTML page
+/// Returns HTML for ReDoc documentation viewer
+pub async fn redoc_html() -> Html<String> {
+    let html = r#"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVWAPI - ReDoc</title>
+    <style>
+        body { margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <redoc spec-url="/swagger/openapi.json"></redoc>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+</body>
+</html>
+    "#;
+    Html(html.to_string())
+}
+
 /// VULNERABILITY: Swagger UI with RCE
 /// OpenAPI spec JSON with vulnerable endpoints documented
 pub async fn swagger_openapi_spec() -> Json<Value> {
