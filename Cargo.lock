@@ -7,16 +7,13 @@ name = "DVWAPI"
 version = "0.1.0"
 dependencies = [
  "axum",
- "axum-swagger-ui",
  "chrono",
  "clap",
  "http-body-util",
- "mime",
  "serde",
  "serde_json",
  "tokio",
  "tower",
- "tower-http",
  "tracing",
  "tracing-subscriber",
  "urlencoding",
@@ -154,12 +151,6 @@ dependencies = [
  "tower-service",
  "tracing",
 ]
-
-[[package]]
-name = "axum-swagger-ui"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "605877320e5ef98ba6bf000eeae03065557b0631d645c08ad6e84340d388948f"
 
 [[package]]
 name = "bitflags"
@@ -836,22 +827,6 @@ dependencies = [
  "pin-project-lite",
  "sync_wrapper",
  "tokio",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
-name = "tower-http"
-version = "0.6.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cf146f99d442e8e68e585f5d798ccd3cad9a7835b917e09728880a862706456"
-dependencies = [
- "bitflags",
- "bytes",
- "http",
- "http-body",
- "pin-project-lite",
  "tower-layer",
  "tower-service",
  "tracing",
