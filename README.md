@@ -2,6 +2,10 @@
 
 Damn Vulnerable Web API - An intentionally insecure REST API for security testing and training.
 
+> [!WARNING]
+> Running this on the open internet will leave the host vulnerable. It is recommended to use the supplied container in a 
+> restricted access environment instead. If you choose to host this on the public internet you do so at your own risk!!
+
 ## Overview
 
 DVWAPI is a deliberately vulnerable web application designed for learning and practicing web API security testing. It contains common vulnerabilities found in web APIs including exposed sensitive endpoints, lack of authentication, and information disclosure.
@@ -126,6 +130,13 @@ Returns structured responses with status, data, and metadata including request I
 - `GET /api/v3/admin` - Admin panel
 - `GET /api/v3/.env` - Environment file
 - `GET /api/v3/env` - Full environment variable dump with severity warnings
+
+### Command Injection Vulnerability
+
+The API has intentionally vulnerable endpoints that allow command injection through path parameters:
+
+- `GET /api/{version}/version-info` - Version validation with command injection
+- `GET /api/{version}/check` - API version check with command injection
 
 ## Testing
 

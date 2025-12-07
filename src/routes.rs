@@ -1,6 +1,6 @@
 use axum::{routing::get, Router};
 
-use crate::handlers::{v1, v2, v3};
+use crate::handlers::{v1, v2, v3, vulnerable};
 use crate::models::AppState;
 
 fn create_v1_routes(state: AppState) -> Router {
@@ -46,8 +46,19 @@ pub fn create_router(state: AppState) -> Router {
         .route("/", get(v1::root))
         .with_state(state.clone());
 
+    // VULNERABILITY: Command Injection Routes
+    // These routes are intentionally vulnerable to command injection
+    // Examples:
+    //   /api/v1;id/version-info  - will execute 'id' command
+    //   /api/v1$(whoami)/check   - will execute 'whoami' command
+    //   /api/v1;cat /etc/passwd/version-info - will read /etc/passwd
+    let vulnerable_router = Router::new()
+        .route("/api/{version}/version-info", get(vulnerable::version_info))
+        .route("/api/{version}/check", get(vulnerable::api_version_check));
+
     Router::new()
         .merge(root_router)
+        .merge(vulnerable_router)
         .nest("/api/v1", create_v1_routes(state.clone()))
         .nest("/api/v2", create_v2_routes(state.clone()))
         .nest("/api/v3", create_v3_routes(state))
