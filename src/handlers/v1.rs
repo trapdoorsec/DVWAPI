@@ -52,3 +52,17 @@ pub async fn debug_secret() -> Json<Value> {
         "api_key": "sk_live_12345"
     }))
 }
+
+pub async fn env_dump() -> Json<Value> {
+    Json(json!({
+        "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "HOME": "/home/appuser",
+        "USER": "appuser",
+        "SHELL": "/bin/bash",
+        "DATABASE_URL": "postgresql://admin:password123@db.internal:5432/production",
+        "REDIS_URL": "redis://redis.internal:6379",
+        "SECRET_KEY": "super-secret-key-do-not-share",
+        "AWS_ACCESS_KEY_ID": "AKIAIOSFODNN7EXAMPLE",
+        "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    }))
+}

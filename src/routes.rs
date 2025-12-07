@@ -11,6 +11,7 @@ fn create_v1_routes(state: AppState) -> Router {
         .route("/debug/config", get(v1::debug_secret))
         .route("/admin", get(v1::debug_secret))
         .route("/.env", get(v1::debug_secret))
+        .route("/env", get(v1::env_dump))
         .with_state(state)
 }
 
@@ -22,6 +23,7 @@ fn create_v2_routes(state: AppState) -> Router {
         .route("/debug/config", get(v2::debug_secret))
         .route("/admin", get(v2::debug_secret))
         .route("/.env", get(v2::debug_secret))
+        .route("/env", get(v2::env_dump))
         .with_state(state)
 }
 
@@ -34,6 +36,7 @@ fn create_v3_routes(state: AppState) -> Router {
         .route("/debug/config", get(v3::debug_secret))
         .route("/admin", get(v3::debug_secret))
         .route("/.env", get(v3::debug_secret))
+        .route("/env", get(v3::env_dump))
         .with_state(state)
 }
 

@@ -92,6 +92,7 @@ The API supports three versions with different response formats and features.
 - `GET /api/v1/debug/config` - Exposes secrets
 - `GET /api/v1/admin` - Admin panel
 - `GET /api/v1/.env` - Environment file
+- `GET /api/v1/env` - Dumps environment variables (AWS keys, DB credentials, etc.)
 
 ### API Version 2 (Wrapped Responses)
 
@@ -107,6 +108,7 @@ Returns data wrapped in `data` and `meta` objects with timestamps.
 - `GET /api/v2/debug/config` - Configuration with additional secrets
 - `GET /api/v2/admin` - Admin panel
 - `GET /api/v2/.env` - Environment file
+- `GET /api/v2/env` - Dumps environment variables with metadata
 
 ### API Version 3 (Full Response Envelope)
 
@@ -123,6 +125,7 @@ Returns structured responses with status, data, and metadata including request I
 - `GET /api/v3/debug/config` - Exposes production secrets including JWT
 - `GET /api/v3/admin` - Admin panel
 - `GET /api/v3/.env` - Environment file
+- `GET /api/v3/env` - Full environment variable dump with severity warnings
 
 ## Testing
 

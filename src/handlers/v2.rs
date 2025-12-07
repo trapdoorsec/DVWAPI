@@ -88,3 +88,32 @@ pub async fn debug_secret() -> Json<Value> {
         "version": "2.0"
     }))
 }
+
+pub async fn env_dump() -> Json<Value> {
+    Json(json!({
+        "data": {
+            "environment": {
+                "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "HOME": "/home/appuser",
+                "USER": "appuser",
+                "SHELL": "/bin/bash",
+                "DATABASE_URL": "postgresql://admin:password123@db.internal:5432/production",
+                "REDIS_URL": "redis://redis.internal:6379",
+                "SECRET_KEY": "super-secret-key-do-not-share",
+                "AWS_ACCESS_KEY_ID": "AKIAIOSFODNN7EXAMPLE",
+                "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                "STRIPE_SECRET_KEY": "sk_live_51H8Example",
+                "JWT_SECRET": "jwt-secret-key-12345",
+                "ADMIN_PASSWORD": "admin123",
+                "API_TOKEN": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+                "SMTP_PASSWORD": "email_password_123",
+            },
+            "count": 16
+        },
+        "meta": {
+            "version": "2.0",
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+            "warning": "Environment variables exposed"
+        }
+    }))
+}
