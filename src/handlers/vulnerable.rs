@@ -1,6 +1,9 @@
 use axum::{
+    body::Body,
     extract::Path,
-    response::{Html, Json},
+    http::{Request, StatusCode},
+    middleware::Next,
+    response::{Html, Json, Response},
 };
 use serde_json::{json, Value};
 use std::process::Command;
@@ -963,5 +966,249 @@ pub async fn private_metrics() -> Json<Value> {
             }
         },
         "internal_notes": "Remember to rotate API keys next week - current keys expire 2025-12-15"
+    }))
+}
+
+/// VULNERABILITY: Weak Basic Authentication Middleware
+/// Uses hardcoded credentials: admin/admin123
+/// This middleware demonstrates common authentication mistakes:
+/// - Hardcoded credentials in source code
+/// - Weak password
+/// - No rate limiting on auth attempts
+/// - Credentials visible in logs
+pub async fn basic_auth_middleware(
+    req: Request<Body>,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    // VULNERABILITY: Hardcoded credentials
+    const USERNAME: &str = "admin";
+    const PASSWORD: &str = "admin123";
+
+    let auth_header = req
+        .headers()
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok());
+
+    if let Some(auth_value) = auth_header {
+        if auth_value.starts_with("Basic ") {
+            let encoded = &auth_value[6..];
+
+            // Decode base64 using base64 engine
+            use base64::{Engine as _, engine::general_purpose};
+            if let Ok(decoded_bytes) = general_purpose::STANDARD.decode(encoded) {
+                if let Ok(decoded) = String::from_utf8(decoded_bytes) {
+                    let parts: Vec<&str> = decoded.split(':').collect();
+                    if parts.len() == 2 {
+                        let (username, password) = (parts[0], parts[1]);
+
+                        // VULNERABILITY: Credentials logged
+                        tracing::debug!("Admin auth attempt: username={}, password={}", username, password);
+
+                        // VULNERABILITY: Simple string comparison, no timing-safe comparison
+                        if username == USERNAME && password == PASSWORD {
+                            tracing::info!("Admin authentication successful for user: {}", username);
+                            return Ok(next.run(req).await);
+                        } else {
+                            tracing::warn!("Admin authentication failed: invalid credentials (username={}, password={})", username, password);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    tracing::warn!("Admin authentication failed: missing or invalid Authorization header");
+
+    Err(StatusCode::UNAUTHORIZED)
+}
+
+/// VULNERABILITY: Admin index page
+/// Lists admin endpoints after authentication
+pub async fn admin_index() -> Json<Value> {
+    tracing::info!("Admin index accessed");
+    Json(json!({
+        "status": "authenticated",
+        "message": "Admin Panel - Authenticated",
+        "user": "admin",
+        "role": "super_admin",
+        "endpoints": {
+            "dashboard": "/admin/dashboard",
+            "users": "/admin/users",
+            "config": "/admin/config",
+            "logs": "/admin/logs",
+            "sql": "/admin/sql"
+        },
+        "note": "All admin endpoints require Basic Auth: admin/admin123"
+    }))
+}
+
+/// VULNERABILITY: Admin dashboard with sensitive data
+/// Exposes critical system information after weak authentication
+pub async fn admin_dashboard() -> Json<Value> {
+    tracing::warn!("VULNERABILITY: Admin dashboard accessed - exposing sensitive admin data!");
+    Json(json!({
+        "status": "ok",
+        "message": "Admin Dashboard",
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "system": {
+            "version": "1.2.3-prod",
+            "environment": "production",
+            "uptime_hours": 720,
+            "server_name": "api-prod-01.internal.corp",
+            "internal_ip": "10.0.1.42",
+            "external_ip": "203.0.113.45"
+        },
+        "database": {
+            "host": "prod-db.internal.corp",
+            "port": 5432,
+            "database": "maindb",
+            "username": "admin",
+            "password": "SecureP@ssw0rd!",
+            "connection_string": "postgresql://admin:SecureP@ssw0rd!@prod-db.internal.corp:5432/maindb",
+            "max_connections": 100,
+            "active_connections": 45,
+            "total_size_gb": 234.5
+        },
+        "users": {
+            "total": 156789,
+            "active_today": 12345,
+            "new_today": 234,
+            "banned": 567,
+            "admin_users": [
+                {
+                    "id": 1,
+                    "username": "admin",
+                    "email": "admin@internal.corp",
+                    "password_hash": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYpZRS1KpoS",
+                    "api_key": "admin_key_1a2b3c4d5e6f7g8h9i0j",
+                    "role": "super_admin",
+                    "last_login": "2025-12-07T14:25:00Z",
+                    "ip": "10.0.1.100"
+                },
+                {
+                    "id": 2,
+                    "username": "support",
+                    "email": "support@internal.corp",
+                    "password": "support123",
+                    "api_key": "support_key_9z8y7x6w5v4u3t2s1r0q",
+                    "role": "admin",
+                    "last_login": "2025-12-07T13:10:00Z",
+                    "ip": "10.0.1.101"
+                }
+            ]
+        },
+        "api_keys": {
+            "total_active": 1567,
+            "admin_keys": [
+                "admin_key_1a2b3c4d5e6f7g8h9i0j",
+                "master_key_abcdefghijklmnopqrst",
+                "root_key_zyxwvutsrqponmlkjihg"
+            ],
+            "service_keys": {
+                "stripe": "sk_live_51H8K9jFZsExample",
+                "sendgrid": "SG.1234567890abcdefghij.klmnopqrstuvwxyz",
+                "aws_access": "AKIAIOSFODNN7EXAMPLE",
+                "aws_secret": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                "jwt_secret": "super-secret-jwt-production-key-2024"
+            }
+        },
+        "security": {
+            "failed_logins_24h": 3456,
+            "blocked_ips": [
+                "198.51.100.23",
+                "203.0.113.67",
+                "192.0.2.89"
+            ],
+            "recent_attacks": [
+                {
+                    "type": "SQL Injection",
+                    "ip": "198.51.100.23",
+                    "endpoint": "/api/v1/users",
+                    "timestamp": "2025-12-07T14:15:00Z",
+                    "payload": "' OR '1'='1"
+                },
+                {
+                    "type": "XSS Attempt",
+                    "ip": "203.0.113.67",
+                    "endpoint": "/api/v2/users",
+                    "timestamp": "2025-12-07T14:10:00Z",
+                    "payload": "<script>alert('xss')</script>"
+                }
+            ],
+            "auth_attempts": {
+                "total_24h": 50000,
+                "successful": 46544,
+                "failed": 3456,
+                "brute_force_detected": 23
+            }
+        },
+        "revenue": {
+            "today": 45678.90,
+            "this_week": 234567.80,
+            "this_month": 987654.30,
+            "this_year": 8765432.10,
+            "currency": "USD",
+            "top_customers": [
+                {
+                    "customer_id": "cust_1234",
+                    "name": "Acme Corp",
+                    "email": "billing@acme.example",
+                    "total_spent": 123456.78,
+                    "api_key": "key_acme_1a2b3c4d"
+                },
+                {
+                    "customer_id": "cust_5678",
+                    "name": "Tech Industries",
+                    "email": "finance@tech.example",
+                    "total_spent": 89012.34,
+                    "api_key": "key_tech_9z8y7x6w"
+                }
+            ]
+        },
+        "infrastructure": {
+            "servers": [
+                {
+                    "name": "api-prod-01",
+                    "ip": "10.0.1.42",
+                    "ssh_user": "ubuntu",
+                    "ssh_key": "/root/.ssh/prod_key.pem",
+                    "status": "running"
+                },
+                {
+                    "name": "api-prod-02",
+                    "ip": "10.0.1.43",
+                    "ssh_user": "ubuntu",
+                    "ssh_key": "/root/.ssh/prod_key.pem",
+                    "status": "running"
+                }
+            ],
+            "load_balancer": "lb.internal.corp",
+            "cdn": "cdn.example.com"
+        },
+        "backups": {
+            "last_backup": "2025-12-07T02:00:00Z",
+            "backup_location": "s3://prod-backups-internal/daily/",
+            "encryption_key": "backup-encryption-key-aes256-12345",
+            "retention_days": 30
+        },
+        "monitoring": {
+            "alerts_24h": 12,
+            "critical_alerts": 2,
+            "dashboards": {
+                "grafana": "https://grafana.internal.corp/admin",
+                "kibana": "https://kibana.internal.corp/admin",
+                "datadog": "https://app.datadoghq.com"
+            },
+            "credentials": {
+                "grafana_admin": "admin:grafana_password_123",
+                "kibana_admin": "elastic:kibana_password_456"
+            }
+        },
+        "notes": [
+            "Database credentials need rotation - scheduled for 2025-12-15",
+            "Consider implementing 2FA for admin accounts",
+            "Review blocked IPs list weekly",
+            "Stripe webhook secret expires next month"
+        ]
     }))
 }

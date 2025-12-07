@@ -1,5 +1,6 @@
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
+    middleware,
     response::Html,
     routing::{get, post},
     Router,
@@ -135,6 +136,19 @@ pub fn create_router(state: AppState) -> Router {
         .route("/private", get(vulnerable::private_index))
         .route("/private/metrics", get(vulnerable::private_metrics));
 
+    // VULNERABILITY: Admin Panel with Weak Authentication
+    // Protected by Basic Auth with hardcoded credentials: admin/admin123
+    // Vulnerabilities:
+    //   - Weak, easily guessable password
+    //   - Hardcoded credentials in source code
+    //   - No rate limiting on auth attempts
+    //   - Credentials logged in debug mode
+    //   - Dashboard exposes all secrets, credentials, and infrastructure details
+    let admin_router = Router::new()
+        .route("/", get(vulnerable::admin_index))
+        .route("/dashboard", get(vulnerable::admin_dashboard))
+        .layer(middleware::from_fn(vulnerable::basic_auth_middleware));
+
     // GraphQL Routes
     let schema = graphql::create_schema(state.clone());
 
@@ -186,6 +200,7 @@ pub fn create_router(state: AppState) -> Router {
         .merge(swagger_router)
         .merge(actuator_router)
         .merge(internal_router)
+        .nest("/admin", admin_router)
         .merge(graphql_router)
         .nest("/api/v1", create_v1_routes(state.clone()))
         .nest("/api/v2", create_v2_routes(state.clone()))

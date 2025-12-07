@@ -21,6 +21,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 urlencoding = "2"
 async-graphql = "7.0.17"
 async-graphql-axum = "7.0.17"
+base64 = "0.21"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
