@@ -21,8 +21,10 @@ pub struct QueryRoot;
 impl QueryRoot {
     /// Get all users
     async fn users(&self, ctx: &Context<'_>) -> Vec<User> {
+        tracing::debug!("GraphQL query: users");
         let state = ctx.data::<AppState>().unwrap();
         let users = state.read().await;
+        tracing::debug!("Returning {} users via GraphQL", users.len());
         users
             .iter()
             .map(|u| User {
@@ -34,16 +36,24 @@ impl QueryRoot {
 
     /// Get user by ID
     async fn user(&self, ctx: &Context<'_>, id: u32) -> Option<User> {
+        tracing::debug!("GraphQL query: user(id: {})", id);
         let state = ctx.data::<AppState>().unwrap();
         let users = state.read().await;
-        users.iter().find(|u| u.id == id).map(|u| User {
+        let result = users.iter().find(|u| u.id == id).map(|u| User {
             id: u.id,
             name: u.name.clone(),
-        })
+        });
+        if result.is_some() {
+            tracing::debug!("User {} found via GraphQL", id);
+        } else {
+            tracing::debug!("User {} not found via GraphQL", id);
+        }
+        result
     }
 
     /// VULNERABILITY: Exposed secrets via GraphQL
     async fn secrets(&self) -> Vec<Secret> {
+        tracing::warn!("VULNERABILITY: GraphQL secrets query accessed - exposing sensitive data!");
         vec![
             Secret {
                 key: "API_KEY".to_string(),
@@ -62,6 +72,7 @@ impl QueryRoot {
 
     /// VULNERABILITY: System info exposure
     async fn system_info(&self) -> SystemInfo {
+        tracing::warn!("VULNERABILITY: GraphQL systemInfo query accessed - exposing system details!");
         SystemInfo {
             hostname: "prod-api-server-01".to_string(),
             platform: std::env::consts::OS.to_string(),
@@ -85,6 +96,7 @@ pub struct MutationRoot;
 impl MutationRoot {
     /// Create a new user
     async fn create_user(&self, ctx: &Context<'_>, name: String) -> User {
+        tracing::info!("GraphQL mutation: createUser(name: {})", name);
         let state = ctx.data::<AppState>().unwrap();
         let mut users = state.write().await;
         let id = users.len() as u32 + 1;
@@ -93,23 +105,28 @@ impl MutationRoot {
             name: name.clone(),
         };
         users.push(user);
+        tracing::info!("User created via GraphQL: id={}, name={}", id, name);
         User { id, name }
     }
 
     /// VULNERABILITY: Delete user without authentication
     async fn delete_user(&self, ctx: &Context<'_>, id: u32) -> bool {
+        tracing::warn!("VULNERABILITY: GraphQL deleteUser mutation without auth - deleting user {}", id);
         let state = ctx.data::<AppState>().unwrap();
         let mut users = state.write().await;
         if let Some(pos) = users.iter().position(|u| u.id == id) {
             users.remove(pos);
+            tracing::warn!("User {} deleted via GraphQL without authentication!", id);
             true
         } else {
+            tracing::debug!("User {} not found for deletion", id);
             false
         }
     }
 
     /// VULNERABILITY: Execute arbitrary GraphQL without validation
     async fn execute_query(&self, query: String) -> String {
+        tracing::warn!("VULNERABILITY: GraphQL executeQuery mutation called with: {}", query);
         format!("Would execute: {}", query)
     }
 }

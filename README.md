@@ -243,6 +243,45 @@ mutation {
 - System information disclosure
 - Unrestricted mutations
 
+### Spring Boot Actuator Endpoints
+
+The API mimics Spring Boot Actuator management endpoints with critical vulnerabilities:
+
+- `GET /actuator` - Actuator index (lists all available management endpoints)
+- `GET /actuator/health` - Health check with detailed component information
+- `GET /actuator/env` - **CRITICAL**: Exposes ALL configuration including secrets, credentials, and environment variables
+- `GET /actuator/heapdump` - **CRITICAL**: Simulated heap dump exposing sensitive data from memory
+- `POST /actuator/shutdown` - **CRITICAL**: Unauthenticated application shutdown endpoint
+
+**Example Usage:**
+
+```bash
+# List all actuator endpoints
+curl http://localhost:7341/actuator
+
+# Check application health
+curl http://localhost:7341/actuator/health
+
+# VULNERABILITY: Dump all configuration and secrets
+curl http://localhost:7341/actuator/env
+
+# VULNERABILITY: Generate heap dump with sensitive data
+curl http://localhost:7341/actuator/heapdump
+
+# VULNERABILITY: Shutdown the application without authentication
+curl -X POST http://localhost:7341/actuator/shutdown
+```
+
+**Security Issues:**
+- No authentication or authorization on any endpoint
+- Complete environment variable exposure (database passwords, API keys, AWS credentials, JWT secrets, etc.)
+- Heap dump contains simulated sensitive data (passwords, tokens, credit cards, private keys)
+- Shutdown endpoint allows anonymous DoS attacks
+- Detailed system information disclosure
+- Production configuration fully exposed
+
+These endpoints simulate common misconfigurations in Spring Boot applications where actuator endpoints are exposed without proper security.
+
 ## Testing
 
 Run the test suite:

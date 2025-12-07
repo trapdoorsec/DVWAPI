@@ -1,7 +1,7 @@
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
     response::Html,
-    routing::{get},
+    routing::{get, post},
     Router,
 };
 
@@ -106,6 +106,19 @@ pub fn create_router(state: AppState) -> Router {
             get(vulnerable::swagger_upload_spec),
         );
 
+    // VULNERABILITY: Spring Boot Actuator Endpoints
+    // Mimics Spring Boot Actuator management endpoints
+    // Critical vulnerabilities:
+    //   /actuator/env      - exposes ALL configuration including secrets
+    //   /actuator/heapdump - exposes memory dump with sensitive data
+    //   /actuator/shutdown - unauthenticated shutdown endpoint
+    let actuator_router = Router::new()
+        .route("/actuator", get(vulnerable::actuator_index))
+        .route("/actuator/health", get(vulnerable::actuator_health))
+        .route("/actuator/env", get(vulnerable::actuator_env))
+        .route("/actuator/heapdump", get(vulnerable::actuator_heapdump))
+        .route("/actuator/shutdown", post(vulnerable::actuator_shutdown));
+
     // GraphQL Routes
     let schema = graphql::create_schema(state.clone());
 
@@ -155,6 +168,7 @@ pub fn create_router(state: AppState) -> Router {
         .merge(vulnerable_router)
         .merge(git_router)
         .merge(swagger_router)
+        .merge(actuator_router)
         .merge(graphql_router)
         .nest("/api/v1", create_v1_routes(state.clone()))
         .nest("/api/v2", create_v2_routes(state.clone()))

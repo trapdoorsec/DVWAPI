@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use crate::models::{AppState, CreateUser, User};
 
 pub async fn root() -> Json<Value> {
+    tracing::debug!("v2 root endpoint accessed");
     Json(json!({
         "status": "ok",
         "message": "Vulnerable API v2",
@@ -18,6 +19,7 @@ pub async fn root() -> Json<Value> {
 
 pub async fn list_users(State(users): State<AppState>) -> Json<Value> {
     let users = users.read().await;
+    tracing::debug!("v2 listing {} users", users.len());
     Json(json!({
         "data": {
             "users": *users,
@@ -34,11 +36,13 @@ pub async fn get_user(
     Path(id): Path<u32>,
     State(users): State<AppState>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    tracing::debug!("v2 fetching user with id: {}", id);
     let users = users.read().await;
     users
         .iter()
         .find(|u| u.id == id)
         .map(|u| {
+            tracing::debug!("v2 user found: {}", u.name);
             Json(json!({
                 "data": u,
                 "meta": {
@@ -46,19 +50,23 @@ pub async fn get_user(
                 }
             }))
         })
-        .ok_or((
-            StatusCode::NOT_FOUND,
-            Json(json!({
-                "error": "User not found",
-                "code": 404
-            })),
-        ))
+        .ok_or_else(|| {
+            tracing::debug!("v2 user {} not found", id);
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "error": "User not found",
+                    "code": 404
+                })),
+            )
+        })
 }
 
 pub async fn create_user(
     State(users): State<AppState>,
     Json(input): Json<CreateUser>,
 ) -> (StatusCode, Json<Value>) {
+    tracing::debug!("v2 creating user with name: {}", input.name);
     let mut users = users.write().await;
     let id = users.len() as u32 + 1;
     let user = User {
@@ -66,6 +74,7 @@ pub async fn create_user(
         name: input.name,
     };
     users.push(user.clone());
+    tracing::info!("v2 user created: id={}, name={}", user.id, user.name);
     (
         StatusCode::CREATED,
         Json(json!({
@@ -79,6 +88,7 @@ pub async fn create_user(
 }
 
 pub async fn debug_secret() -> Json<Value> {
+    tracing::warn!("v2 debug_secret endpoint accessed - secrets exposed!");
     Json(json!({
         "config": {
             "db_password": "supersecret123_v2",
@@ -90,6 +100,7 @@ pub async fn debug_secret() -> Json<Value> {
 }
 
 pub async fn env_dump() -> Json<Value> {
+    tracing::warn!("v2 env_dump endpoint accessed - environment variables exposed!");
     Json(json!({
         "data": {
             "environment": {

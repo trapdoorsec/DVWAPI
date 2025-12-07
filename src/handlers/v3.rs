@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use crate::models::{AppState, CreateUser, User};
 
 pub async fn root() -> Json<Value> {
+    tracing::debug!("v3 root endpoint accessed");
     Json(json!({
         "status": "success",
         "message": "Vulnerable API v3 - Latest",
@@ -22,6 +23,7 @@ pub async fn root() -> Json<Value> {
 }
 
 pub async fn health() -> Json<Value> {
+    tracing::debug!("v3 health endpoint accessed");
     Json(json!({
         "status": "healthy",
         "uptime": "unknown",
@@ -31,6 +33,7 @@ pub async fn health() -> Json<Value> {
 
 pub async fn list_users(State(users): State<AppState>) -> Json<Value> {
     let users = users.read().await;
+    tracing::debug!("v3 listing {} users", users.len());
     Json(json!({
         "status": "success",
         "data": {
@@ -51,11 +54,13 @@ pub async fn get_user(
     Path(id): Path<u32>,
     State(users): State<AppState>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    tracing::debug!("v3 fetching user with id: {}", id);
     let users = users.read().await;
     users
         .iter()
         .find(|u| u.id == id)
         .map(|u| {
+            tracing::debug!("v3 user found: {}", u.name);
             Json(json!({
                 "status": "success",
                 "data": {
@@ -68,27 +73,31 @@ pub async fn get_user(
                 }
             }))
         })
-        .ok_or((
-            StatusCode::NOT_FOUND,
-            Json(json!({
-                "status": "error",
-                "error": {
-                    "message": "User not found",
-                    "code": "USER_NOT_FOUND",
-                    "status": 404
-                },
-                "metadata": {
-                    "api_version": "3.0",
-                    "request_id": uuid::Uuid::new_v4().to_string()
-                }
-            })),
-        ))
+        .ok_or_else(|| {
+            tracing::debug!("v3 user {} not found", id);
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "status": "error",
+                    "error": {
+                        "message": "User not found",
+                        "code": "USER_NOT_FOUND",
+                        "status": 404
+                    },
+                    "metadata": {
+                        "api_version": "3.0",
+                        "request_id": uuid::Uuid::new_v4().to_string()
+                    }
+                })),
+            )
+        })
 }
 
 pub async fn create_user(
     State(users): State<AppState>,
     Json(input): Json<CreateUser>,
 ) -> (StatusCode, Json<Value>) {
+    tracing::debug!("v3 creating user with name: {}", input.name);
     let mut users = users.write().await;
     let id = users.len() as u32 + 1;
     let user = User {
@@ -96,6 +105,7 @@ pub async fn create_user(
         name: input.name,
     };
     users.push(user.clone());
+    tracing::info!("v3 user created: id={}, name={}", user.id, user.name);
     (
         StatusCode::CREATED,
         Json(json!({
@@ -114,6 +124,7 @@ pub async fn create_user(
 }
 
 pub async fn debug_secret() -> Json<Value> {
+    tracing::warn!("v3 debug_secret endpoint accessed - secrets exposed!");
     Json(json!({
         "status": "success",
         "data": {
@@ -133,6 +144,7 @@ pub async fn debug_secret() -> Json<Value> {
 }
 
 pub async fn env_dump() -> Json<Value> {
+    tracing::warn!("v3 env_dump endpoint accessed - CRITICAL: environment variables exposed!");
     Json(json!({
         "status": "success",
         "data": {
@@ -171,6 +183,7 @@ pub async fn env_dump() -> Json<Value> {
 }
 
 pub async fn ping() -> Json<Value> {
+    tracing::debug!("v3 ping endpoint accessed");
     Json(json!({
         "pong": "0",
     }))
