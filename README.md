@@ -74,18 +74,55 @@ docker run -d -p 7341:7341 --name dvwapi dvwapi:latest
 
 ## API Endpoints
 
-### Public Endpoints
+The API supports three versions with different response formats and features.
 
-- `GET /` - API status
-- `GET /users` - List all users
-- `GET /users/{id}` - Get user by ID
-- `POST /users` - Create new user
+### Root Endpoint
 
-### Hidden/Vulnerable Endpoints
+- `GET /` - API status (returns v1 format)
 
-- `GET /debug/config` - Exposes sensitive configuration
-- `GET /admin` - Admin panel with secrets
-- `GET /.env` - Environment file exposure
+### API Version 1 (Simple)
+
+**Public Endpoints:**
+- `GET /api/v1/` - API version info
+- `GET /api/v1/users` - List all users
+- `GET /api/v1/users/{id}` - Get user by ID
+- `POST /api/v1/users` - Create new user
+
+**Vulnerable Endpoints:**
+- `GET /api/v1/debug/config` - Exposes secrets
+- `GET /api/v1/admin` - Admin panel
+- `GET /api/v1/.env` - Environment file
+
+### API Version 2 (Wrapped Responses)
+
+Returns data wrapped in `data` and `meta` objects with timestamps.
+
+**Public Endpoints:**
+- `GET /api/v2/` - API version info
+- `GET /api/v2/users` - List users with metadata
+- `GET /api/v2/users/{id}` - Get user with metadata
+- `POST /api/v2/users` - Create user with metadata
+
+**Vulnerable Endpoints:**
+- `GET /api/v2/debug/config` - Configuration with additional secrets
+- `GET /api/v2/admin` - Admin panel
+- `GET /api/v2/.env` - Environment file
+
+### API Version 3 (Full Response Envelope)
+
+Returns structured responses with status, data, and metadata including request IDs.
+
+**Public Endpoints:**
+- `GET /api/v3/` - API version info with endpoint list
+- `GET /api/v3/health` - Health check endpoint
+- `GET /api/v3/users` - List users with pagination info
+- `GET /api/v3/users/{id}` - Get user with permissions
+- `POST /api/v3/users` - Create user with full metadata
+
+**Vulnerable Endpoints:**
+- `GET /api/v3/debug/config` - Exposes production secrets including JWT
+- `GET /api/v3/admin` - Admin panel
+- `GET /api/v3/.env` - Environment file
 
 ## Testing
 

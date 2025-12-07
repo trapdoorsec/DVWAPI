@@ -17,6 +17,8 @@ tower-http = { version = "0.6.7", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "ansi"] }
 clap = { version = "4", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

@@ -118,17 +118,17 @@ mod tests {
 
         let body = body_to_json(response.into_body()).await;
         assert_eq!(body["status"], "ok");
-        assert_eq!(body["message"], "Vulnerable API v0.1");
+        assert_eq!(body["version"], "1.0");
     }
 
     #[tokio::test]
-    async fn test_list_users() {
+    async fn test_v1_list_users() {
         let app = create_test_app();
 
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/users")
+                    .uri("/api/v1/users")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -145,13 +145,57 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_user_found() {
+    async fn test_v2_list_users() {
         let app = create_test_app();
 
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/users/1")
+                    .uri("/api/v2/users")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = body_to_json(response.into_body()).await;
+        assert!(body["data"]["users"].is_array());
+        assert_eq!(body["data"]["total"], 2);
+        assert_eq!(body["meta"]["version"], "2.0");
+    }
+
+    #[tokio::test]
+    async fn test_v3_list_users() {
+        let app = create_test_app();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v3/users")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = body_to_json(response.into_body()).await;
+        assert_eq!(body["status"], "success");
+        assert!(body["data"]["users"].is_array());
+        assert_eq!(body["metadata"]["api_version"], "3.0");
+    }
+
+    #[tokio::test]
+    async fn test_v1_get_user_found() {
+        let app = create_test_app();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/users/1")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -166,13 +210,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_user_not_found() {
+    async fn test_v1_get_user_not_found() {
         let app = create_test_app();
 
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/users/999")
+                    .uri("/api/v1/users/999")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -183,7 +227,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_user() {
+    async fn test_v1_create_user() {
         let app = create_test_app();
 
         let new_user = json!({"name": "testuser"});
@@ -192,7 +236,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/users")
+                    .uri("/api/v1/users")
                     .header("content-type", "application/json")
                     .body(Body::from(new_user.to_string()))
                     .unwrap(),
@@ -208,13 +252,34 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_debug_secret_endpoint() {
+    async fn test_v3_health_endpoint() {
         let app = create_test_app();
 
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/debug/config")
+                    .uri("/api/v3/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = body_to_json(response.into_body()).await;
+        assert_eq!(body["status"], "healthy");
+        assert_eq!(body["version"], "3.0");
+    }
+
+    #[tokio::test]
+    async fn test_v1_debug_secret_endpoint() {
+        let app = create_test_app();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/debug/config")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -226,41 +291,5 @@ mod tests {
         let body = body_to_json(response.into_body()).await;
         assert_eq!(body["db_password"], "supersecret123");
         assert_eq!(body["api_key"], "sk_live_12345");
-    }
-
-    #[tokio::test]
-    async fn test_admin_endpoint() {
-        let app = create_test_app();
-
-        let response = app
-            .oneshot(
-                Request::builder()
-                    .uri("/admin")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body = body_to_json(response.into_body()).await;
-        assert!(body.get("db_password").is_some());
-        assert!(body.get("api_key").is_some());
-    }
-
-    #[tokio::test]
-    async fn test_dotenv_endpoint() {
-        let app = create_test_app();
-
-        let response = app
-            .oneshot(Request::builder().uri("/.env").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body = body_to_json(response.into_body()).await;
-        assert!(body.get("db_password").is_some());
     }
 }

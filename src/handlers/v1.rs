@@ -8,7 +8,11 @@ use serde_json::{json, Value};
 use crate::models::{AppState, CreateUser, User};
 
 pub async fn root() -> Json<Value> {
-    Json(json!({ "status": "ok", "message": "Vulnerable API v0.1" }))
+    Json(json!({
+        "status": "ok",
+        "message": "Vulnerable API v1",
+        "version": "1.0"
+    }))
 }
 
 pub async fn list_users(State(users): State<AppState>) -> Json<Value> {
