@@ -592,3 +592,376 @@ pub async fn actuator_shutdown() -> Json<Value> {
         "note": "In a real application, this would actually shutdown the server. For demo purposes, shutdown is simulated only."
     }))
 }
+
+/// VULNERABILITY: Internal API index (UNDOCUMENTED)
+/// Exposes internal endpoints meant for internal services only
+pub async fn internal_index() -> Json<Value> {
+    tracing::warn!("VULNERABILITY: /internal endpoint accessed - internal API exposed!");
+    Json(json!({
+        "status": "ok",
+        "message": "Internal API - For internal services only",
+        "version": "internal-v1",
+        "endpoints": [
+            "/internal/health",
+            "/internal/metrics",
+            "/internal/debug",
+            "/internal/cache",
+            "/internal/db/stats"
+        ],
+        "warning": "This endpoint should not be publicly accessible",
+        "authentication": "none",
+        "ip_whitelist": "disabled"
+    }))
+}
+
+/// VULNERABILITY: Internal health check (UNDOCUMENTED)
+/// More detailed than public health, includes sensitive internal services
+pub async fn internal_health() -> Json<Value> {
+    tracing::warn!("VULNERABILITY: /internal/health accessed - detailed internal health data exposed!");
+    Json(json!({
+        "status": "healthy",
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "uptime_seconds": 86400,
+        "services": {
+            "database": {
+                "status": "up",
+                "host": "prod-db.internal.corp:5432",
+                "database": "maindb",
+                "username": "app_user",
+                "connection_pool": {
+                    "active": 15,
+                    "idle": 5,
+                    "max": 20,
+                    "min": 5
+                },
+                "slow_queries": 3,
+                "last_error": null
+            },
+            "redis": {
+                "status": "up",
+                "host": "redis.internal.corp:6379",
+                "memory_used_mb": 245,
+                "connected_clients": 12,
+                "ops_per_sec": 1250,
+                "hit_rate": 0.94
+            },
+            "elasticsearch": {
+                "status": "up",
+                "cluster": "prod-cluster",
+                "nodes": ["es-node-1.internal", "es-node-2.internal", "es-node-3.internal"],
+                "indices": 47,
+                "documents": 15678901
+            },
+            "message_queue": {
+                "status": "up",
+                "broker": "rabbitmq.internal.corp:5672",
+                "vhost": "/production",
+                "queues": {
+                    "email_queue": {
+                        "messages": 125,
+                        "consumers": 3
+                    },
+                    "notification_queue": {
+                        "messages": 89,
+                        "consumers": 2
+                    },
+                    "analytics_queue": {
+                        "messages": 1567,
+                        "consumers": 5
+                    }
+                }
+            },
+            "internal_services": {
+                "auth_service": "http://auth.internal.corp:8080",
+                "payment_service": "http://payment.internal.corp:8081",
+                "notification_service": "http://notify.internal.corp:8082",
+                "analytics_service": "http://analytics.internal.corp:8083"
+            }
+        },
+        "network": {
+            "internal_ip": "10.0.1.42",
+            "external_ip": "203.0.113.45",
+            "hostname": "api-server-prod-01.internal.corp",
+            "gateway": "10.0.1.1",
+            "dns_servers": ["10.0.0.1", "10.0.0.2"]
+        }
+    }))
+}
+
+/// VULNERABILITY: Internal metrics (UNDOCUMENTED)
+/// Exposes detailed operational metrics including usage patterns
+pub async fn internal_metrics() -> Json<Value> {
+    tracing::warn!("VULNERABILITY: /internal/metrics accessed - sensitive metrics data exposed!");
+    Json(json!({
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "uptime_seconds": 86400,
+        "requests": {
+            "total": 1567890,
+            "per_second": 18.2,
+            "per_minute": 1092,
+            "per_hour": 65520,
+            "by_endpoint": {
+                "/api/v1/users": 456789,
+                "/api/v1/auth/login": 123456,
+                "/api/v2/transactions": 89012,
+                "/api/v3/orders": 45678,
+                "/graphql": 12345,
+                "/internal/health": 8901
+            },
+            "by_status": {
+                "200": 1456789,
+                "201": 45678,
+                "400": 34567,
+                "401": 12345,
+                "403": 8901,
+                "404": 5678,
+                "500": 3456
+            },
+            "by_method": {
+                "GET": 1234567,
+                "POST": 234567,
+                "PUT": 56789,
+                "DELETE": 34567,
+                "PATCH": 7401
+            }
+        },
+        "performance": {
+            "avg_response_time_ms": 125.4,
+            "p50_ms": 89,
+            "p95_ms": 456,
+            "p99_ms": 1234,
+            "slowest_endpoints": [
+                {
+                    "endpoint": "/api/v2/reports/generate",
+                    "avg_ms": 4567,
+                    "count": 234
+                },
+                {
+                    "endpoint": "/api/v3/analytics/dashboard",
+                    "avg_ms": 2345,
+                    "count": 567
+                }
+            ]
+        },
+        "database": {
+            "queries_total": 5678901,
+            "queries_per_second": 65.7,
+            "avg_query_time_ms": 23.4,
+            "slow_queries": 123,
+            "connection_errors": 5,
+            "deadlocks": 2,
+            "cache_hit_rate": 0.89
+        },
+        "memory": {
+            "heap_used_mb": 387,
+            "heap_max_mb": 512,
+            "heap_committed_mb": 512,
+            "non_heap_used_mb": 89,
+            "gc_collections": 234,
+            "gc_time_ms": 1234
+        },
+        "api_keys": {
+            "total_active": 1567,
+            "usage_by_key": {
+                "key_1a2b3c4d": {
+                    "requests": 123456,
+                    "last_used": "2025-12-07T14:10:00Z",
+                    "owner": "customer_123"
+                },
+                "key_9z8y7x6w": {
+                    "requests": 89012,
+                    "last_used": "2025-12-07T14:05:00Z",
+                    "owner": "partner_corp"
+                },
+                "key_5v4u3t2s": {
+                    "requests": 45678,
+                    "last_used": "2025-12-07T14:00:00Z",
+                    "owner": "internal_service"
+                }
+            },
+            "rate_limited_keys": 23,
+            "revoked_today": 5
+        },
+        "errors": {
+            "total_24h": 12345,
+            "by_type": {
+                "DatabaseConnectionError": 45,
+                "TimeoutException": 123,
+                "ValidationError": 8901,
+                "AuthenticationError": 2345,
+                "InternalServerError": 456
+            },
+            "recent_errors": [
+                {
+                    "timestamp": "2025-12-07T14:12:34Z",
+                    "type": "DatabaseConnectionError",
+                    "message": "Connection to prod-db.internal.corp:5432 refused",
+                    "stack_trace": "at db.connect() line 45"
+                },
+                {
+                    "timestamp": "2025-12-07T14:11:12Z",
+                    "type": "TimeoutException",
+                    "message": "Request to payment_service timed out after 5000ms",
+                    "endpoint": "http://payment.internal.corp:8081/charge"
+                }
+            ]
+        },
+        "security": {
+            "failed_auth_attempts_24h": 3456,
+            "blocked_ips": ["198.51.100.23", "203.0.113.67"],
+            "suspicious_requests": 234,
+            "sql_injection_attempts": 45,
+            "xss_attempts": 23,
+            "api_abuse_detected": 12
+        }
+    }))
+}
+
+/// VULNERABILITY: Alternative internal endpoint (UNDOCUMENTED)
+pub async fn underscore_internal() -> Json<Value> {
+    tracing::warn!("VULNERABILITY: /_internal endpoint accessed - alternative internal API exposed!");
+    Json(json!({
+        "status": "ok",
+        "message": "Alternative internal API endpoint",
+        "note": "This is an undocumented endpoint for debugging",
+        "environment": "production",
+        "build": {
+            "version": "1.2.3-prod",
+            "git_commit": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+            "build_time": "2025-11-15T10:30:00Z",
+            "builder": "jenkins@build-server.internal",
+            "rust_version": "1.86.0"
+        },
+        "config": {
+            "debug_mode": false,
+            "log_level": "info",
+            "max_connections": 1000,
+            "timeout_seconds": 30,
+            "enable_cors": true,
+            "allowed_origins": ["https://app.example.com", "https://admin.example.com"],
+            "feature_flags": {
+                "new_payment_flow": true,
+                "experimental_api": false,
+                "admin_dashboard_v2": true
+            }
+        },
+        "endpoints": [
+            "/_internal/debug",
+            "/_internal/config",
+            "/_internal/cache/clear",
+            "/_internal/db/migrate"
+        ]
+    }))
+}
+
+/// VULNERABILITY: Private API index (UNDOCUMENTED)
+pub async fn private_index() -> Json<Value> {
+    tracing::warn!("VULNERABILITY: /private endpoint accessed - private API exposed!");
+    Json(json!({
+        "status": "ok",
+        "message": "Private API - Internal use only",
+        "warning": "This API is not meant for external access",
+        "authentication": "disabled",
+        "endpoints": {
+            "metrics": "/private/metrics",
+            "admin": "/private/admin",
+            "debug": "/private/debug",
+            "config": "/private/config",
+            "users": "/private/users/all"
+        },
+        "notes": "All endpoints are unauthenticated for internal convenience"
+    }))
+}
+
+/// VULNERABILITY: Private metrics endpoint (UNDOCUMENTED)
+pub async fn private_metrics() -> Json<Value> {
+    tracing::warn!("VULNERABILITY: /private/metrics accessed - private metrics exposed!");
+    Json(json!({
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "server": {
+            "hostname": "api-prod-01.internal.corp",
+            "pid": 12345,
+            "port": 7341,
+            "workers": 8,
+            "threads": 32
+        },
+        "traffic": {
+            "requests_total": 1567890,
+            "bandwidth_in_gb": 234.56,
+            "bandwidth_out_gb": 567.89,
+            "unique_ips_24h": 12345,
+            "top_user_agents": [
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) - 45.2%",
+                "curl/7.68.0 - 23.1%",
+                "python-requests/2.28.1 - 12.7%",
+                "PostmanRuntime/7.29.2 - 8.4%",
+                "sqlmap/1.6 - 2.1%"
+            ]
+        },
+        "users": {
+            "registered_total": 156789,
+            "active_24h": 12345,
+            "premium_users": 2345,
+            "trial_users": 456,
+            "admin_users": 23,
+            "recently_registered": [
+                {
+                    "id": 156789,
+                    "email": "user@example.com",
+                    "registered_at": "2025-12-07T13:45:00Z",
+                    "ip": "198.51.100.42"
+                },
+                {
+                    "id": 156788,
+                    "email": "another@example.com",
+                    "registered_at": "2025-12-07T13:30:00Z",
+                    "ip": "203.0.113.89"
+                }
+            ],
+            "highest_api_usage": [
+                {
+                    "user_id": 1234,
+                    "email": "power.user@corp.com",
+                    "requests_24h": 50000,
+                    "api_key": "key_1a2b3c4d_partial"
+                },
+                {
+                    "user_id": 5678,
+                    "email": "bot.account@automated.net",
+                    "requests_24h": 35000,
+                    "api_key": "key_9z8y7x6w_partial"
+                }
+            ]
+        },
+        "revenue": {
+            "today": 45678.90,
+            "this_week": 234567.80,
+            "this_month": 987654.30,
+            "currency": "USD",
+            "transactions_24h": 2345,
+            "average_transaction": 19.47,
+            "failed_payments_24h": 123
+        },
+        "integrations": {
+            "stripe": {
+                "status": "connected",
+                "secret_key": "sk_live_51H8K9j***",
+                "webhook_secret": "whsec_***",
+                "requests_24h": 2345
+            },
+            "sendgrid": {
+                "status": "connected",
+                "api_key": "SG.***",
+                "emails_sent_24h": 12345,
+                "bounce_rate": 0.023
+            },
+            "aws": {
+                "status": "connected",
+                "access_key_id": "AKIA***",
+                "s3_requests": 56789,
+                "cloudfront_requests": 123456
+            }
+        },
+        "internal_notes": "Remember to rotate API keys next week - current keys expire 2025-12-15"
+    }))
+}

@@ -119,6 +119,22 @@ pub fn create_router(state: AppState) -> Router {
         .route("/actuator/heapdump", get(vulnerable::actuator_heapdump))
         .route("/actuator/shutdown", post(vulnerable::actuator_shutdown));
 
+    // VULNERABILITY: Internal API Endpoints (UNDOCUMENTED)
+    // These endpoints are meant for internal services but are exposed publicly
+    // Common in microservices where internal APIs are accidentally exposed
+    // Critical vulnerabilities:
+    //   /internal/health  - detailed service topology and internal hostnames
+    //   /internal/metrics - operational metrics, API keys usage, error details
+    //   /_internal        - build info, config, feature flags
+    //   /private/metrics  - revenue data, user details, integration secrets
+    let internal_router = Router::new()
+        .route("/internal", get(vulnerable::internal_index))
+        .route("/internal/health", get(vulnerable::internal_health))
+        .route("/internal/metrics", get(vulnerable::internal_metrics))
+        .route("/_internal", get(vulnerable::underscore_internal))
+        .route("/private", get(vulnerable::private_index))
+        .route("/private/metrics", get(vulnerable::private_metrics));
+
     // GraphQL Routes
     let schema = graphql::create_schema(state.clone());
 
@@ -169,6 +185,7 @@ pub fn create_router(state: AppState) -> Router {
         .merge(git_router)
         .merge(swagger_router)
         .merge(actuator_router)
+        .merge(internal_router)
         .merge(graphql_router)
         .nest("/api/v1", create_v1_routes(state.clone()))
         .nest("/api/v2", create_v2_routes(state.clone()))
