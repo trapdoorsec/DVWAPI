@@ -31,6 +31,7 @@ fn create_v3_routes(state: AppState) -> Router {
     Router::new()
         .route("/", get(v3::root))
         .route("/health", get(v3::health))
+        .route("/ping", get(v3::ping))
         .route("/users", get(v3::list_users).post(v3::create_user))
         .route("/users/{id}", get(v3::get_user))
         .route("/debug/config", get(v3::debug_secret))

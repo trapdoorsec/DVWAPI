@@ -169,3 +169,9 @@ pub async fn env_dump() -> Json<Value> {
         }
     }))
 }
+
+pub async fn ping() -> Json<Value> {
+    Json(json!({
+        "pong": "0",
+    }))
+}
