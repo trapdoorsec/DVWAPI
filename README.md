@@ -120,7 +120,8 @@ Returns structured responses with status, data, and metadata including request I
 
 **Public Endpoints:**
 - `GET /api/v3/` - API version info with endpoint list
-- `GET /api/v3/health` - Health check endpoint
+- `GET /api/v3/health` - Health check endpoint (also: `/healthz`, `/healthcheck`, `/ready`, `/readyz`, `/live`, `/livez`, `/status`)
+- `GET /api/v3/ping` - Ping endpoint
 - `GET /api/v3/users` - List users with pagination info
 - `GET /api/v3/users/{id}` - Get user with permissions
 - `POST /api/v3/users` - Create user with full metadata
