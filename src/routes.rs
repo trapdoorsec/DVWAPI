@@ -1,5 +1,11 @@
-use axum::{routing::get, Router};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use axum::{
+    response::Html,
+    routing::{get},
+    Router,
+};
 
+use crate::graphql;
 use crate::handlers::{v1, v2, v3, vulnerable};
 use crate::models::AppState;
 
@@ -75,7 +81,6 @@ pub fn create_router(state: AppState) -> Router {
         .route("/.git/logs/HEAD", get(vulnerable::git_logs_head))
         .route("/.git/index", get(vulnerable::git_index));
 
-
     // VULNERABILITY: Swagger UI with RCE
     // Swagger documentation endpoint with command injection vulnerabilities
     // Examples:
@@ -85,18 +90,72 @@ pub fn create_router(state: AppState) -> Router {
     let swagger_router = Router::new()
         .route("/swagger", get(vulnerable::swagger_ui_html))
         .route("/redoc", get(vulnerable::redoc_html))
-        .route("/swagger/openapi.json", get(vulnerable::swagger_openapi_spec))
+        .route(
+            "/swagger/openapi.json",
+            get(vulnerable::swagger_openapi_spec),
+        )
         .route("/swagger.json", get(vulnerable::swagger_openapi_spec))
         .route("/api-docs", get(vulnerable::swagger_openapi_spec))
         .route("/swagger/generate", get(vulnerable::swagger_generate))
-        .route("/swagger/generate/{params}", get(vulnerable::swagger_generate))
-        .route("/swagger/upload/{spec}", get(vulnerable::swagger_upload_spec));
+        .route(
+            "/swagger/generate/{params}",
+            get(vulnerable::swagger_generate),
+        )
+        .route(
+            "/swagger/upload/{spec}",
+            get(vulnerable::swagger_upload_spec),
+        );
+
+    // GraphQL Routes
+    let schema = graphql::create_schema(state.clone());
+
+    async fn graphql_playground() -> Html<&'static str> {
+        Html(
+            r#"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>GraphQL Playground</title>
+    <link rel="stylesheet" href="https://unpkg.com/graphql-playground-react/build/static/css/index.css">
+    <script src="https://unpkg.com/graphql-playground-react/build/static/js/middleware.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        window.addEventListener('load', function (event) {
+            GraphQLPlayground.init(document.getElementById('root'), {
+                endpoint: '/graphql',
+                settings: {
+                    'request.credentials': 'same-origin'
+                }
+            })
+        })
+    </script>
+</body>
+</html>
+            "#,
+        )
+    }
+
+    async fn graphql_handler(
+        schema: axum::extract::Extension<graphql::ApiSchema>,
+        req: GraphQLRequest,
+    ) -> GraphQLResponse {
+        schema.execute(req.into_inner()).await.into()
+    }
+
+    let graphql_router = Router::new()
+        .route("/graphql", get(graphql_playground).post(graphql_handler))
+        .route("/graphql/playground", get(graphql_playground))
+        .layer(axum::extract::Extension(schema));
 
     Router::new()
         .merge(root_router)
         .merge(vulnerable_router)
         .merge(git_router)
         .merge(swagger_router)
+        .merge(graphql_router)
         .nest("/api/v1", create_v1_routes(state.clone()))
         .nest("/api/v2", create_v2_routes(state.clone()))
         .nest("/api/v3", create_v3_routes(state))

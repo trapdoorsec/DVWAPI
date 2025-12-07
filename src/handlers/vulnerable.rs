@@ -16,10 +16,7 @@ pub async fn version_info(Path(version): Path<String>) -> Json<Value> {
     // VULNERABLE: Unsanitized user input passed to shell command
     let cmd = format!("echo '{}' | grep -E '^v[0-9]+'", version);
 
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .output();
+    let output = Command::new("sh").arg("-c").arg(&cmd).output();
 
     match output {
         Ok(result) => {
@@ -50,10 +47,7 @@ pub async fn api_version_check(Path(version): Path<String>) -> Json<Value> {
     // VULNERABLE: Direct command execution with user input
     let cmd = format!("echo 'API Version: {}' && uname -a", version);
 
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .output();
+    let output = Command::new("sh").arg("-c").arg(&cmd).output();
 
     match output {
         Ok(result) => {
@@ -296,7 +290,9 @@ pub async fn swagger_generate(Path(params): Path<String>) -> Json<Value> {
     // Parse query string manually (vulnerable approach)
     let title = if let Some(title_param) = params.split("title=").nth(1) {
         let title_value = title_param.split('&').next().unwrap_or("API");
-        urlencoding::decode(title_value).unwrap_or_default().to_string()
+        urlencoding::decode(title_value)
+            .unwrap_or_default()
+            .to_string()
     } else {
         "DVWAPI".to_string()
     };
@@ -305,10 +301,7 @@ pub async fn swagger_generate(Path(params): Path<String>) -> Json<Value> {
     // Supposedly validates the title by checking if it's alphanumeric
     let validation_cmd = format!("echo '{}' | grep -E '^[a-zA-Z0-9 ]+$'", title);
 
-    let validation_result = Command::new("sh")
-        .arg("-c")
-        .arg(&validation_cmd)
-        .output();
+    let validation_result = Command::new("sh").arg("-c").arg(&validation_cmd).output();
 
     let is_valid = validation_result
         .as_ref()
@@ -350,10 +343,7 @@ pub async fn swagger_upload_spec(Path(spec_content): Path<String>) -> Json<Value
     // VULNERABILITY: Processes YAML by piping through shell
     let cmd = format!("echo '{}' | head -10", decoded_spec);
 
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .output();
+    let output = Command::new("sh").arg("-c").arg(&cmd).output();
 
     match output {
         Ok(result) => {

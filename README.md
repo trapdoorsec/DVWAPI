@@ -168,6 +168,81 @@ curl "http://localhost:7341/swagger/generate?title=API\;ls%20-la\;pwd"
 
 The vulnerability exists because the endpoints use shell commands to "validate" user input during spec generation.
 
+### GraphQL API
+
+The API includes GraphQL endpoints with intentional vulnerabilities:
+
+- `GET /graphql` - GraphQL Playground (interactive query interface)
+- `POST /graphql` - GraphQL API endpoint
+- `GET /graphql/playground` - Alternative playground URL
+
+**Available Queries:**
+
+```graphql
+# Get all users
+query {
+  users {
+    id
+    name
+  }
+}
+
+# Get user by ID
+query {
+  user(id: 1) {
+    id
+    name
+  }
+}
+
+# VULNERABLE: Exposed secrets
+query {
+  secrets {
+    key
+    value
+  }
+}
+
+# VULNERABLE: System information exposure
+query {
+  systemInfo {
+    hostname
+    platform
+    arch
+    version
+  }
+}
+```
+
+**Available Mutations:**
+
+```graphql
+# Create a new user
+mutation {
+  createUser(name: "Alice") {
+    id
+    name
+  }
+}
+
+# VULNERABLE: Delete user without authentication
+mutation {
+  deleteUser(id: 1)
+}
+
+# VULNERABLE: Execute arbitrary query
+mutation {
+  executeQuery(query: "{ users { id } }")
+}
+```
+
+**Security Issues:**
+- Full introspection enabled
+- No authentication or authorization
+- Secrets exposed via queries
+- System information disclosure
+- Unrestricted mutations
+
 ## Testing
 
 Run the test suite:
