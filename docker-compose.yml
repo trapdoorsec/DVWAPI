@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  dvwapi:
+    image: ${DOCKER_REPO:-trapdoorsec/dvwapi}:${TAG:-latest}
+    container_name: dvwapi
+    ports:
+      - "${HOST_PORT:-7341}:7341"
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+    command: ["--ip", "0.0.0.0", "--port", "7341", "--log-level", "${LOG_LEVEL:-info}"]
+    restart: unless-stopped
+    networks:
+      - dvwapi-network
+
+networks:
+  dvwapi-network:
+    driver: bridge

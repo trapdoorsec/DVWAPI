@@ -10,6 +10,41 @@ Damn Vulnerable Web API - An intentionally insecure REST API for security testin
 
 DVWAPI is a deliberately vulnerable web application designed for learning and practicing web API security testing. It contains common vulnerabilities found in web APIs including exposed sensitive endpoints, lack of authentication, and information disclosure.
 
+## Quick Start
+
+### Using Docker Hub (Recommended)
+
+Pull and run the latest image from Docker Hub:
+
+```bash
+docker pull trapdoorsec/dvwapi:latest
+docker run -d -p 7341:7341 --name dvwapi trapdoorsec/dvwapi:latest
+```
+
+The API will be available at `http://localhost:7341`
+
+### Using Docker Compose
+
+```bash
+docker-compose up -d
+```
+
+### Using Makefile
+
+```bash
+# Build locally
+make build
+
+# Run container
+make run
+
+# View logs
+make logs
+
+# Stop container
+make stop
+```
+
 ## Building
 
 ### Native Build
@@ -22,11 +57,66 @@ The compiled binary will be available at `target/release/dvwapi`.
 
 ### Docker Build
 
+Build locally:
+
 ```bash
 docker build -t dvwapi:latest .
 ```
 
+Or use the Makefile:
+
+```bash
+make build
+```
+
 ## Usage
+
+### Docker Hub
+
+Pull the latest image:
+
+```bash
+docker pull trapdoorsec/dvwapi:latest
+```
+
+Run the container:
+
+```bash
+docker run -d -p 7341:7341 --name dvwapi trapdoorsec/dvwapi:latest
+```
+
+Run with custom options:
+
+```bash
+docker run -d -p 8080:8080 --name dvwapi trapdoorsec/dvwapi:latest --port 8080 --log-level debug
+```
+
+Stop the container:
+
+```bash
+docker stop dvwapi
+docker rm dvwapi
+```
+
+### Docker Compose
+
+Start the service:
+
+```bash
+docker-compose up -d
+```
+
+View logs:
+
+```bash
+docker-compose logs -f
+```
+
+Stop the service:
+
+```bash
+docker-compose down
+```
 
 ### Native
 
@@ -34,26 +124,6 @@ Run with default settings (0.0.0.0:7341):
 
 ```bash
 ./dvwapi
-```
-
-### Docker
-
-Run the container with port mapping:
-
-```bash
-docker run -p 7341:7341 dvwapi:latest
-```
-
-Run with custom options:
-
-```bash
-docker run -p 8080:8080 dvwapi:latest --port 8080 --log-level debug
-```
-
-Run in detached mode:
-
-```bash
-docker run -d -p 7341:7341 --name dvwapi dvwapi:latest
 ```
 
 ### Command Line Options
@@ -288,6 +358,85 @@ Run the test suite:
 
 ```bash
 cargo test
+```
+
+Or use the Makefile:
+
+```bash
+make cargo-test
+```
+
+## Publishing to Docker Hub
+
+### Prerequisites
+
+1. Docker Hub account
+2. Docker installed and logged in (`docker login`)
+
+### Build and Push
+
+Using the Makefile (recommended):
+
+```bash
+# Login to Docker Hub
+make login
+
+# Build, push, and tag
+make publish
+```
+
+Or manually:
+
+```bash
+# Build the image
+docker build -t trapdoorsec/dvwapi:latest -t trapdoorsec/dvwapi:0.1.0 .
+
+# Push to Docker Hub
+docker push trapdoorsec/dvwapi:latest
+docker push trapdoorsec/dvwapi:0.1.0
+
+# Tag git commit
+git tag -a v0.1.0 -m "Release v0.1.0"
+git push origin v0.1.0
+```
+
+### Available Tags
+
+- `latest` - Latest stable release
+- `0.1.0` - Specific version (matches Cargo.toml version)
+- Version tags follow semantic versioning
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and customize:
+
+```bash
+cp .env.example .env
+```
+
+Available variables:
+- `DOCKER_REPO` - Docker Hub repository (default: trapdoorsec/dvwapi)
+- `TAG` - Image tag (default: latest)
+- `HOST_PORT` - Host port mapping (default: 7341)
+- `LOG_LEVEL` - Application log level (default: info)
+
+## Makefile Commands
+
+The project includes a Makefile for common operations:
+
+```bash
+make help              # Show all available commands
+make build             # Build Docker image
+make run               # Run container
+make stop              # Stop container
+make logs              # View container logs
+make push              # Push to Docker Hub
+make publish           # Build, push, and tag (full release)
+make compose-up        # Start with docker-compose
+make compose-down      # Stop docker-compose
+make cargo-build       # Build Rust binary
+make cargo-test        # Run tests
+make clean             # Clean up
 ```
 
 ## Security Warning
