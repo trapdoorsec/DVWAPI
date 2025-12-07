@@ -1,4 +1,7 @@
-use axum::{extract::Path, response::Json};
+use axum::{
+    extract::Path,
+    response::{Html, Json},
+};
 use serde_json::{json, Value};
 use std::process::Command;
 
@@ -143,4 +146,208 @@ pub async fn git_index() -> Json<Value> {
             {"path": "Cargo.toml", "mode": "100644"}
         ]
     }))
+}
+
+/// VULNERABILITY: Swagger UI HTML page
+/// Returns HTML for Swagger UI with proper content-type
+pub async fn swagger_ui_html() -> Html<String> {
+    let html = r#"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVWAPI - Swagger UI</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+    <style>
+        body { margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            SwaggerUIBundle({
+                url: "/swagger/openapi.json",
+                dom_id: '#swagger-ui',
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                layout: "StandaloneLayout"
+            });
+        };
+    </script>
+</body>
+</html>
+    "#;
+    Html(html.to_string())
+}
+
+/// VULNERABILITY: Swagger UI with RCE
+/// OpenAPI spec JSON with vulnerable endpoints documented
+pub async fn swagger_openapi_spec() -> Json<Value> {
+    Json(json!({
+        "openapi": "3.0.0",
+        "info": {
+            "title": "DVWAPI - Damn Vulnerable Web API",
+            "version": "1.0.0",
+            "description": "Intentionally vulnerable API for security testing and training"
+        },
+        "servers": [
+            {"url": "http://localhost:7341", "description": "Local server"}
+        ],
+        "paths": {
+            "/api/v1/users": {
+                "get": {
+                    "summary": "List all users",
+                    "tags": ["Users"],
+                    "responses": {
+                        "200": {
+                            "description": "Success"
+                        }
+                    }
+                }
+            },
+            "/swagger/generate": {
+                "get": {
+                    "summary": "Generate custom API spec (VULNERABLE - RCE)",
+                    "tags": ["Vulnerable"],
+                    "parameters": [
+                        {
+                            "name": "title",
+                            "in": "query",
+                            "description": "API title - VULNERABLE TO COMMAND INJECTION",
+                            "required": false,
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Generated spec with command execution results"
+                        }
+                    }
+                }
+            },
+            "/swagger/upload/{spec}": {
+                "get": {
+                    "summary": "Upload YAML spec (VULNERABLE - RCE)",
+                    "tags": ["Vulnerable"],
+                    "parameters": [
+                        {
+                            "name": "spec",
+                            "in": "path",
+                            "description": "YAML spec content - VULNERABLE TO COMMAND INJECTION",
+                            "required": true,
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Spec processed with command execution"
+                        }
+                    }
+                }
+            }
+        },
+        "tags": [
+            {"name": "Users", "description": "User management endpoints"},
+            {"name": "Vulnerable", "description": "Intentionally vulnerable endpoints"}
+        ]
+    }))
+}
+
+/// VULNERABILITY: RCE through Swagger spec generation
+/// This endpoint generates a Swagger spec with a custom title
+/// The title parameter is passed to a shell command for "validation"
+///
+/// Example exploit: /swagger/generate?title=$(whoami)
+/// Example exploit: /swagger/generate?title=API;id;
+pub async fn swagger_generate(Path(params): Path<String>) -> Json<Value> {
+    // Parse query string manually (vulnerable approach)
+    let title = if let Some(title_param) = params.split("title=").nth(1) {
+        let title_value = title_param.split('&').next().unwrap_or("API");
+        urlencoding::decode(title_value).unwrap_or_default().to_string()
+    } else {
+        "DVWAPI".to_string()
+    };
+
+    // VULNERABILITY: Command injection through spec generation
+    // Supposedly validates the title by checking if it's alphanumeric
+    let validation_cmd = format!("echo '{}' | grep -E '^[a-zA-Z0-9 ]+$'", title);
+
+    let validation_result = Command::new("sh")
+        .arg("-c")
+        .arg(&validation_cmd)
+        .output();
+
+    let is_valid = validation_result
+        .as_ref()
+        .map(|r| r.status.success())
+        .unwrap_or(false);
+
+    let stdout = validation_result
+        .as_ref()
+        .map(|r| String::from_utf8_lossy(&r.stdout).to_string())
+        .unwrap_or_default();
+
+    Json(json!({
+        "openapi": "3.0.0",
+        "info": {
+            "title": title,
+            "version": "1.0.0",
+            "description": "Auto-generated API specification"
+        },
+        "metadata": {
+            "title_validated": is_valid,
+            "validation_output": stdout.trim(),
+            "validation_command": validation_cmd
+        },
+        "servers": [
+            {"url": "http://localhost:7341/api/v1"}
+        ],
+        "paths": {},
+        "warning": "This spec generator executes shell commands for validation"
+    }))
+}
+
+/// VULNERABILITY: YAML spec upload with unsafe deserialization
+/// Accepts YAML content and processes it with shell commands
+pub async fn swagger_upload_spec(Path(spec_content): Path<String>) -> Json<Value> {
+    let decoded_spec = urlencoding::decode(&spec_content)
+        .unwrap_or_default()
+        .to_string();
+
+    // VULNERABILITY: Processes YAML by piping through shell
+    let cmd = format!("echo '{}' | head -10", decoded_spec);
+
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(&cmd)
+        .output();
+
+    match output {
+        Ok(result) => {
+            let stdout = String::from_utf8_lossy(&result.stdout).to_string();
+
+            Json(json!({
+                "status": "processed",
+                "spec_preview": stdout,
+                "message": "YAML spec processed successfully",
+                "command_executed": cmd,
+                "note": "Spec is validated using shell commands"
+            }))
+        }
+        Err(e) => Json(json!({
+            "status": "error",
+            "error": e.to_string(),
+            "command_executed": cmd
+        })),
+    }
 }

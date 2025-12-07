@@ -75,10 +75,27 @@ pub fn create_router(state: AppState) -> Router {
         .route("/.git/logs/HEAD", get(vulnerable::git_logs_head))
         .route("/.git/index", get(vulnerable::git_index));
 
+
+    // VULNERABILITY: Swagger UI with RCE
+    // Swagger documentation endpoint with command injection vulnerabilities
+    // Examples:
+    //   /swagger/generate?title=$(whoami) - executes whoami command
+    //   /swagger/generate?title=API;id;    - executes id command
+    //   /swagger/upload/test;id;           - executes id command
+    let swagger_router = Router::new()
+        .route("/swagger", get(vulnerable::swagger_ui_html))
+        .route("/swagger/openapi.json", get(vulnerable::swagger_openapi_spec))
+        .route("/swagger.json", get(vulnerable::swagger_openapi_spec))
+        .route("/api-docs", get(vulnerable::swagger_openapi_spec))
+        .route("/swagger/generate", get(vulnerable::swagger_generate))
+        .route("/swagger/generate/{params}", get(vulnerable::swagger_generate))
+        .route("/swagger/upload/{spec}", get(vulnerable::swagger_upload_spec));
+
     Router::new()
         .merge(root_router)
         .merge(vulnerable_router)
         .merge(git_router)
+        .merge(swagger_router)
         .nest("/api/v1", create_v1_routes(state.clone()))
         .nest("/api/v2", create_v2_routes(state.clone()))
         .nest("/api/v3", create_v3_routes(state))
